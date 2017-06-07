@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "#install.packages(\"acepack\")\ninstall.packages(\"Hmisc\")\n\nlibrary(Hmisc)\n\n#x <- c(58.50,1.14,4.83,398.37,58.49,5.67,48.27,2.92,85.05)\n#y<-c(73.68,0.22,5.66,437.76,139.26,12.19,42.49,14.58,55.63)\n#z<-cbind(x,y)\n\n#rcorr(z, type=\"spearman\")\n#rcorr(z, type=\"pearson\")\n\n######################\n\nmyData <- read.table(\"input/data2paper_edited.csv\", sep=\"\\t\", header=TRUE)\nacuracia <- myData$accuracy\nprecision <- myData$precision\nrecall <- myData$recall\nerror <- myData$error\nf1score <- myData$f1score\ndescriptiontime <- myData$descriptiontime\ntimetotal <- myData$total_time\n\n#rcorr(cbind(acuracia, precision), type=\"spearman\")\n#rcorr(cbind(precision, recall), type=\"spearman\")\n#rcorr(cbind(acuracia, recall), type=\"spearman\")\nrcorr(cbind(acuracia, error), type=\"spearman\")\nrcorr(cbind(precision, error), type=\"spearman\")\nrcorr(cbind(acuracia, f1score), type=\"spearman\")\nrcorr(cbind(f1score, error), type=\"spearman\")\nrcorr(cbind(timetotal, f1score), type=\"spearman\")\nrcorr(cbind(descriptiontime, f1score), type=\"spearman\")\n\n",
+    "created" : 1495498381559.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1920238579",
+    "id" : "FC325202",
+    "lastKnownWriteTime" : 1495502952,
+    "last_content_update" : 1495502952,
+    "path" : "~/Dropbox/EPBEST-Carlos/BetterThanSift/Graphics/pearsonAndSpearman.R",
+    "project_path" : null,
+    "properties" : {
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

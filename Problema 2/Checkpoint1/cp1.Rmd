@@ -1,0 +1,94 @@
+---
+title: "Problema 2 - Checkpoint 1"
+author: "Carlos Interaminense"
+date: "June 5, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, include=FALSE}
+library("ggplot2")
+library("dplyr")
+library("tidyr")
+library("readr")
+library(plotly)
+library(highcharter)
+
+```
+
+## Como saber se uma série tem temporadas regulares, a partir da avaliação dos usuários?
+
+Para responder a pergunta deste post, usou-se a base de dados coletada do IMDB ([www.imbd.com](www.imbd.com)) sobre séries de TV e, para facilitar a visualização dos dados, foi considerado um subconjuto dessa base de dados com as seguintes séries: Sense8, The 100, Daredevil e Flash.
+
+```{r, echo=FALSE, include=FALSE}
+dados = read.csv(file="series_from_imdb.csv", stringsAsFactors = FALSE)
+```
+
+```{r, echo = FALSE}
+seriesEscolhidas=  dados %>% filter(series_name %in% c("Sense8", "The 100", "Daredevil", "Flash"))
+
+names(seriesEscolhidas)[names(seriesEscolhidas) == "UserRating"] <- "Avaliação"
+names(seriesEscolhidas)[names(seriesEscolhidas) == "season"] <- "Temporada"
+```
+
+A base de dados tem variáveis que podem ajudar a responder a pergunta, são elas: Temporada, Episódios e Avaliação dos episódios, além das séries escolhidas, é claro.
+
+Temporada, é uma variável que depende da série, ou seja, informa a temporada de um episódio e a quantidade de temporadas depende de série para série, como podemos observar no gráfico a seguir:
+
+
+```{r}
+#seriesEscolhidas %>%
+#  mutate(Temporada = as.character(Temporada)) %>%
+#  ggplot(aes(x = Temporada, y = Avaliação, color = Temporada))
+  
+```
+
+A mesma lógica da Temporada serve para a variável episódio, ou seja, a quantidade de episódios depende de uma temporada varia de série para série, como podemos observar no gráfico a seguir:
+
+```{r}
+#Histograma
+```
+
+A variável _Avalização_ indica a classificação dos usuários do IMDB (para mais informações sobre User Rating, favor acessar este link). Essa variável deve ter valores entre 0 e 10, podemos observar se  **todos** os valores estão nessa faixa de valor, podemos verificar o seguinte histograma:
+
+```{r, message=FALSE, echo = FALSE}
+dados %>%
+  ggplot(aes(x = UserRating)) + 
+  geom_histogram() + 
+  theme_minimal() +
+  xlab("Avaliação dos usuários") + 
+  ylab("Quant. de Avaliações")
+```
+
+
+Agora que temos uma ideia geral do que cada variável representa, podemos analisar os dados e perceber qual a série que tem as temporadas mais regulares. _Lembrando que estamos considerando apenas as quatro séries informadas no início deste post_.
+
+
+O gráfico a seguir tem um _boxplot_ para cada temporada de cada série, a partir das avaliações dos usuários. É importante saber que, quanto mais a distância inter quartil (IQR) for maior, mais irregular essa temporada será.
+
+```{r echo= FALSE}
+
+bp <-seriesEscolhidas %>%
+  mutate(Temporada = as.character(Temporada)) %>%
+  ggplot(aes(x = Temporada, y = Avaliação, color = Temporada)) + 
+  geom_boxplot() +
+  geom_jitter() +
+  facet_wrap(~series_name,  scale="free_x") +
+  theme_minimal() +
+  ggtitle("Avaliações dos Usuários") +
+  xlab("Temporada") + 
+  ylab("Avaliação") +
+  theme(legend.position = "none")
+# customizer tooltip
+bp <- ggplotly(bp , width = 700, height = 500)
+bp
+```
+  
+  
+Em que: Temporada é a temporada da série e  Avalização é a média das avaliações dos usuários para um episódio de uma série, em que um episódio é representado por cada "ponto" do gráfico. 
+
+Podemos observar que a terceira temporada de The100 possui a temporada mais irregular de todas as temporadas de todas as séries. Porém, a série com temporadas mais irregular é Flash, todas as suas teporadas têm IQR maior que as demais temporadas das outras séries, com exceção da quarta temporada de The100.
+
