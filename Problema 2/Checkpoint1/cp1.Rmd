@@ -32,6 +32,7 @@ seriesEscolhidas=  dados %>% filter(series_name %in% c("Sense8", "The 100", "Dar
 
 names(seriesEscolhidas)[names(seriesEscolhidas) == "UserRating"] <- "Avaliação"
 names(seriesEscolhidas)[names(seriesEscolhidas) == "season"] <- "Temporada"
+names(seriesEscolhidas)[names(seriesEscolhidas) == "series_name"] <- "Série"
 ```
 
 A base de dados tem variáveis que podem ajudar a responder a pergunta, são elas: Temporada, Episódios e Avaliação dos episódios, além das séries escolhidas, é claro.
@@ -39,28 +40,43 @@ A base de dados tem variáveis que podem ajudar a responder a pergunta, são ela
 Temporada, é uma variável que depende da série, ou seja, informa a temporada de um episódio e a quantidade de temporadas depende de série para série, como podemos observar no gráfico a seguir:
 
 
-```{r}
-#seriesEscolhidas %>%
-#  mutate(Temporada = as.character(Temporada)) %>%
-#  ggplot(aes(x = Temporada, y = Avaliação, color = Temporada))
-  
+```{r, echo = FALSE}
+Series <- c("The100", "The100",  "The100", "The100", "Daredevil", "Daredevil", "Flash", "Flash", "Flash", "Sense8", "Sense8")
+barplot(table(Series), ylab ="#Temporadas", xlab = "Séries" )
 ```
 
 A mesma lógica da Temporada serve para a variável episódio, ou seja, a quantidade de episódios depende de uma temporada varia de série para série, como podemos observar no gráfico a seguir:
 
-```{r}
-#Histograma
+```{r, echo = FALSE}
+temp = table(seriesEscolhidas$Série, seriesEscolhidas$Temporada)
+
+t = as.data.frame(temp)
+names(t)[names(t) == "Var1"] <- "Série"
+names(t)[names(t) == "Freq"] <- "Quantidade de Episódio"
+b = t %>%
+  ggplot(aes(x = Série, y = `Quantidade de Episódio`)) + 
+  geom_bar(stat="identity", position="dodge") + 
+  theme_minimal() +
+  ggtitle("Análise da variável \"Episódio\"") +
+  xlab("Série") + 
+  ylab("#Total de Episódios")
+
+ggplotly(b, width = 700, height = 500)
 ```
 
 A variável _Avalização_ indica a classificação dos usuários do IMDB (para mais informações sobre User Rating, favor acessar este link). Essa variável deve ter valores entre 0 e 10, podemos observar se  **todos** os valores estão nessa faixa de valor, podemos verificar o seguinte histograma:
 
 ```{r, message=FALSE, echo = FALSE}
-dados %>%
-  ggplot(aes(x = UserRating)) + 
+names(dados)[names(dados) == "UserRating"] <- "Avaliação"
+bb = dados %>%
+  ggplot(aes(x = Avaliação)) + 
   geom_histogram() + 
   theme_minimal() +
+  ggtitle("Análise da variável \"Avaliação\"") +
   xlab("Avaliação dos usuários") + 
   ylab("Quant. de Avaliações")
+
+ggplotly(bb, width = 700, height = 500)
 ```
 
 
@@ -73,12 +89,12 @@ O gráfico a seguir tem um _boxplot_ para cada temporada de cada série, a parti
 
 bp <-seriesEscolhidas %>%
   mutate(Temporada = as.character(Temporada)) %>%
-  ggplot(aes(x = Temporada, y = Avaliação, color = Temporada)) + 
+  ggplot(aes(x = Temporada, y = Avaliação, color = Série)) + 
   geom_boxplot() +
   geom_jitter() +
-  facet_wrap(~series_name,  scale="free_x") +
+  facet_wrap(~Série,  scale="free_x") +
   theme_minimal() +
-  ggtitle("Avaliações dos Usuários") +
+  ggtitle("Avaliações dos Usuários por Temporada") +
   xlab("Temporada") + 
   ylab("Avaliação") +
   theme(legend.position = "none")
@@ -90,5 +106,5 @@ bp
   
 Em que: Temporada é a temporada da série e  Avalização é a média das avaliações dos usuários para um episódio de uma série, em que um episódio é representado por cada "ponto" do gráfico. 
 
-Podemos observar que a terceira temporada de The100 possui a temporada mais irregular de todas as temporadas de todas as séries. Porém, a série com temporadas mais irregular é Flash, todas as suas teporadas têm IQR maior que as demais temporadas das outras séries, com exceção da quarta temporada de The100.
+Podemos observar que a terceira temporada de The100 possui a temporada mais irregular de todas as temporadas de todas as séries. Porém, **a série com temporadas mais irregular é Flash**, pois todas as suas teporadas têm IQR maior que as demais temporadas das outras séries, com exceção da terceira temporada de The100.
 
