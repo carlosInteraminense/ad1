@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "library(shiny)\nlibrary(dplyr)\nlibrary(plotly)\nlibrary(ggplot2)\nlibrary(scales)\nsource(\"import_data.R\")\nimport_data()\n\nshinyServer(function(input, output) {\n  output$variacao.episodios <- renderPlotly({\n    dados.filtrados <- dados %>% \n      filter(series_name == input$serie_name)\n    \n    names(dados.filtrados)[names(dados.filtrados) == \"UserRating\"] <- \"Avaliação\"\n    names(dados.filtrados)[names(dados.filtrados) == \"season\"] <- \"Temporada\"\n  \nbp <-ggplot(dados.filtrados, aes(x = Temporada, y = Avaliação)) +\n      geom_boxplot() +\n      geom_jitter() +\n      facet_wrap(~Temporada, scale=\"free_x\") +\n      theme_minimal() +\n      ggtitle(\"Avaliações dos Usuários\") +\n      ylab(\"Avaliação\") +\n      xlab(\"Temporada\")  \n  \nggplotly(bp, width = 800)\n  })\n  \n})",
+    "created" : 1497234180868.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2479677234",
+    "id" : "AC30C416",
+    "lastKnownWriteTime" : 1497314567,
+    "last_content_update" : 1497314567517,
+    "path" : "/mnt/dados/graduacao/9-periodo/AD1/Problema 2/Checkpoint2/server.R",
+    "project_path" : "server.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

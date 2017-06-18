@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "library(shiny)\nlibrary(plotly)\nsource(\"import_data.R\")\nimport_data()\nshinyUI(fluidPage(\n  \n  titlePanel(\"Selecione a série que você deseja analisar:\"),\n  \n  sidebarLayout(      \n    \n    sidebarPanel(\n      selectInput(\"serie_name\", \"Série:\", \n                  choices=levels(dados$series_name))\n    ),\n    \n    mainPanel(\n      p(\"No gráfico abaixo é possível verificar a regularidade das temporadas das séries escolhidas\"),\n#      plotOutput(\"variacao.episodios\"),\n      plotlyOutput(\"variacao.episodios\"),\n      hr(),\n      p(\"Note que quando maior a distância inter quartil do boxplot (distância entre o primeiro e o terceiro percentil), \n        mais irregular a temporada é. Outra observação que pode ser feita é a partir da mediana, que pode ser considerada como parâmetro de comparação entre as temporadas, ou seja, quanto maior a mediana melhor a temporada\"),\n      p(\"A partir da explicação acima, note que, em The 100, a terceira temporada é a mais irregular, enquanto a primeira foi a mais regular\"),\n      p(\"Perceba que Lost é um série com as temporadas bem parecidas, ou seja, a regularidade das temporadas são parecidas entre si.\"),\n      p(\"Ainda em Lost, perceba que a quinta temporada foi a melhor, pois possui a maior mediana\"),\n      p(\"Agora você pode analisar as suas séries favoriras, ou as que deseja assistir, e saber se são boas ou não a partir das avaliações dos usuários do IMDB\")\n\n\n    )\n  )\n))",
+    "created" : 1497234213519.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3046437313",
+    "id" : "5D4E4BE1",
+    "lastKnownWriteTime" : 1497315140,
+    "last_content_update" : 1497315140980,
+    "path" : "/mnt/dados/graduacao/9-periodo/AD1/Problema 2/Checkpoint2/ui.R",
+    "project_path" : "ui.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

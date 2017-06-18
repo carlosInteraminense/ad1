@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "import_data <- function() {\n  if (!exists(\"dados\") || is.null(dados)) {\n    dados <<- read.csv(\"series_from_imdb.csv\")\n  }\n}",
+    "created" : 1497234242598.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2210786745",
+    "id" : "D3FE4A6A",
+    "lastKnownWriteTime" : 1497234297,
+    "last_content_update" : 1497234297295,
+    "path" : "/mnt/dados/graduacao/9-periodo/AD1/Problema 2/Checkpoint2/import_data.R",
+    "project_path" : "import_data.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
