@@ -46,7 +46,9 @@ plota_hclusts_2d = function(agrupamento,
   atribuicoes %>% 
     ggplot(aes_string(x = nome_colunas[1], y = nome_colunas[2], colour = "grupo")) + 
     geom_jitter(width = .02, height = 0, size = 2, alpha = .6) + 
-    facet_wrap(~ paste(k, " grupos")) + 
-    xlab("") %>% 
+    #facet_wrap(~ paste(k, " grupos")) + 
+    ylab("Bilheteria") +
+    ggtitle("Bilheteria vs avaliação") +
+    xlab("Avaliação") %>% 
     return()
 }

@@ -63,7 +63,7 @@ filmes %>%
 
 Após uma análise rápidas de cada dado que vamos usar neste post, vamos analisar as duas variáveis juntas, como podemo observar no gráfico a seguir:
 
-```{r, message=FALSE, echo=FALSE}
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 agrupamento_h_2d = filmes %>% 
     column_to_rownames("TITLE") %>%
     select(RATING, `BOX OFFICE`) %>% 
