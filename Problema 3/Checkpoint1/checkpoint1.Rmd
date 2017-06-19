@@ -1,0 +1,84 @@
+---
+title: "Problema3-Checkpoint1"
+author: "Carlos Interaminense"
+date: "June 18, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, echo=FALSE}
+library(tidyverse, warn.conflicts = F)
+library(rvest)
+library(plotly)
+library(cluster)
+library(ggdendro)
+source("plota_solucoes_hclust.R")
+```
+
+
+```{r, message=FALSE, echo=FALSE}
+from_page <- read_html("https://www.rottentomatoes.com/celebrity/adam_sandler/") %>% 
+    html_node("#filmographyTbl") %>% # A sintaxe da expressão é de um seletor à lá JQuery: https://rdrr.io/cran/rvest/man/html_nodes.html 
+    html_table(fill=TRUE) %>% # Faz parse
+    as.tibble()
+
+filmes = from_page %>% 
+    filter(RATING != "No Score Yet", 
+           `BOX OFFICE` != "—", 
+           CREDIT != "Executive Producer") %>%
+    mutate(RATING = as.numeric(gsub("%", "", RATING)), 
+           `BOX OFFICE` = as.numeric(gsub("[$|M]", "", `BOX OFFICE`))) %>%
+    filter(`BOX OFFICE` > 0) %>%
+    filter(RATING != 0) %>%
+    filter(`BOX OFFICE` != 'NA') # Tem dois filmes que não parecem ter sido lançados no mundo todo
+```
+
+Neste trabalho vamos analisar os dados dos filmes que Adam Sandler participou. A análise será com base no sucesso de público (bilheteria) e da crítica dos telespectadores, em que essas informações são do ([Rotten Tomatoes](https://www.rottentomatoes.com/celebrity/adam_sandler/)).
+
+Em primeiro lugar, vamos analisar os dados d bilheteria e avaliação, em que ambos não podem ter valores negativos e a avaliação não pode ser maior que 100%. Como podemos observar nos gráficos a seguir (bilheteria e avaliação, respectivamente), todos os dados são válidos e, portanto, podemos continuar com nossa análise.
+
+```{r, message=FALSE, echo=FALSE}
+filmes %>%
+  ggplot(aes(x=`BOX OFFICE`)) +
+  geom_histogram() +
+  geom_rug() +
+  xlab("Bilheteria") +
+  ylab("Quantidade") +
+  ggtitle("Bilheteria dos filmes")
+```
+
+
+```{r, message=FALSE, echo=FALSE}
+filmes %>%
+  ggplot(aes(x = RATING)) +
+  geom_histogram() +
+  geom_rug() +
+  xlab("Avaliação") +
+  ylab("Quantidade") +
+  ggtitle("Média das Avaliações dos telespectadores")
+```
+
+Após uma análise rápidas de cada dado que vamos usar neste post, vamos analisar as duas variáveis juntas, como podemo observar no gráfico a seguir:
+
+```{r, message=FALSE, echo=FALSE}
+agrupamento_h_2d = filmes %>% 
+    column_to_rownames("TITLE") %>%
+    select(RATING, `BOX OFFICE`) %>% 
+    mutate(`BOX OFFICE` = ((filmes$`BOX OFFICE`-min(filmes$`BOX OFFICE`))/(max(filmes$`BOX OFFICE`)-min(filmes$`BOX OFFICE`)))) %>% 
+    mutate(RATING = ((filmes$RATING-min(filmes$RATING))/(max(filmes$RATING)-min(filmes$RATING)))) %>%
+    mutate_all(funs(scale)) %>% 
+    dist(method = "euclidean") %>% 
+    hclust(method = "centroid")
+
+filmes2 = filmes %>% mutate(`BOX OFFICE` = ((filmes$`BOX OFFICE`-min(filmes$`BOX OFFICE`))/(max(filmes$`BOX OFFICE`)-min(filmes$`BOX OFFICE`)))) %>%
+  mutate(RATING = ((filmes$RATING-min(filmes$RATING))/(max(filmes$RATING)-min(filmes$RATING))))
+
+plota_hclusts_2d(agrupamento_h_2d, 
+                 filmes2, 
+                 c("RATING", "`BOX OFFICE`"), 
+                 linkage_method = "ward.D", ks = 3)
+```
+
