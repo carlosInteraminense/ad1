@@ -7,6 +7,7 @@ plota_hclusts_1d = function(dados_filme,
   #' para as quantidades de grupos em `ks` usando `hclust`.
   library(ggplot2)
   library(dplyr, warn.conflicts = F)
+  library(plotly)
   
   agrupamento_h = dados_filme %>% 
     column_to_rownames("TITLE") %>% 
@@ -46,9 +47,37 @@ plota_hclusts_2d = function(agrupamento,
   atribuicoes %>% 
     ggplot(aes_string(x = nome_colunas[1], y = nome_colunas[2], colour = "grupo")) + 
     geom_jitter(width = .02, height = 0, size = 2, alpha = .6) + 
+    facet_wrap(~ paste(k, " grupos")) + 
+    xlab("Avaliação") %>% 
+    return()
+}
+
+plota_hclusts_2d_modificado = function(agrupamento,
+                            dados_filme,
+                            nome_colunas, # coluna usada para distâncias
+                            dist_method = "euclidean", 
+                            linkage_method = "complete", 
+                            ks = 1:9){
+  #' Retorna um ggplot das soluções de agrupamento de `dados_filme` 
+  #' para as quantidades de grupos em `ks` usando `hclust`.
+  library(ggplot2)
+  library(dplyr, warn.conflicts = F)
+  
+  atribuicoes = tibble(k = ks) %>% 
+    group_by(k) %>% 
+    do(cbind(filmes, 
+             grupo = as.character(cutree(agrupamento, .$k)))) 
+  
+ p <-  atribuicoes %>% 
+    ggplot(aes_string(x = nome_colunas[1], y = nome_colunas[2], colour = "grupo")) + 
+    geom_point() +
+#    geom_jitter(width = .02, height = 0, size = 2, alpha = .6) + 
     #facet_wrap(~ paste(k, " grupos")) + 
     ylab("Bilheteria") +
     ggtitle("Bilheteria vs avaliação") +
-    xlab("Avaliação") %>% 
+    xlab("Avaliação")
+   
+   ggplotly(p, width = 700, height = 500) %>% 
+    
     return()
 }
