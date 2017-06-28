@@ -81,8 +81,8 @@ O código abaixo separa as informações dos personagens homens dos mulheres, re
 
 ```{r, message = FALSE}
 
+#junção das informações dos filmes com as dos personagens
 personagens_e_filmes= merge(filmes, personagens_informacoes, by="script_id")
-
 
 # separação das informaões das mulheres
 personagens_mulheres = personagens_e_filmes %>%
@@ -98,9 +98,6 @@ personagens_homens = personagens_e_filmes %>%
 
 # junção das informações dos homens e mulheres
 dados = merge(personagens_homens, personagens_mulheres, by=c('script_id','imdb_id','title','year','gross'))
-
-# jução das informações dos homens e mulhers com o filme correspondente
-#dados = merge(dados, filmes, by="script_id")
 
 # remoção de variáveis que não serão usadas neste relatório
   
