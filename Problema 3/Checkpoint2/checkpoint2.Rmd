@@ -1,0 +1,143 @@
+---
+title: "checkpoint2"
+author: "Carlos Interaminense"
+date: "June 27, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, message=FALSE, echo = FALSE}
+require(GGally, quietly = TRUE)
+require(reshape2, quietly = TRUE)
+require(tidyverse, quietly = TRUE, warn.conflicts = FALSE)
+
+library(ggfortify)
+library(cluster)
+library(ggdendro)
+library(broom)
+library(plotly)
+library(readr)
+
+theme_set(theme_bw())
+```
+
+Neste post, vamos analisar os dados de filmes com base na quantidade de homens e mulheres em cada filme, assim como suas idades e quantidade de palavras que falaram nos filmes. A seguir, os dados são carregados, vamos desconsiderar dados inválidos, ou seja, valores 'NULL' e/ou 'NA'.
+```{r, message = FALSE}
+#Carrega os arquivos
+personagens_informacoes = read_csv("character_list5.csv")
+filmes = read_csv("meta_data7.csv")
+
+# Filtra os filmes, descartando os que têm gross = 'NA'
+filmes = filter(filmes, gross != 'NA')
+
+#Filtra os personagens, descartando os que têm idade NULL
+personagens_informacoes = filter (personagens_informacoes, age != 'NULL') %>%
+  mutate(age = as.numeric(age))
+```
+
+Com as dados carregados, precisamos observar se existem valores inconsistentes nos nossos dados. Por exemplo, as idades dos personagens devem variar de 0 até 130, sende este último valor um valor empírico, pois consideramos que não há pessoas com mais de 130 anos de idade.
+Para observarmos isso, o histograma abaixo mostra se existe pessoas com idade fora do intervalo citado anteriormente [0-130]:
+
+```{r, message = FALSE}
+
+personagens_informacoes %>%
+  filter (age < 0 | age > 130) %>%
+  ggplot(aes(x = age)) +
+  geom_histogram() +
+  ylab("#Pessoas") +
+  xlab("Idade")
+```
+
+Percebemos que existem idades inconsistentes nos nossos dados, pessoas com idade superior a 1900 anos, logo, vamos remover os personagens que tem idade inferior a zero e superior a 130, a partir do código abaixo:
+
+```{r, message = FALSE}
+personagens_informacoes = personagens_informacoes %>%
+  filter(age >= 0 & age <= 130)
+```
+
+Agora, se observamos o histograma abaixo, percebemos que não existe pessoas com idades abaixo de zero e nem acima de 130.
+
+```{r}
+personagens_informacoes %>%
+  ggplot(aes(x = age)) +
+  geom_histogram(bins = 20) +
+  ylab("#Pessoas") +
+  xlab("Idade")
+```
+
+O código abaixo separa as informações dos personagens homens dos mulheres, recuperando a quantidade de personagens do filme, mediana da idade e das quantidade de palavras, todas estas variáveis considerando por gênero, que serão os dados usados neste post. Em seguida, juntou-se as informações dos gêneros (número de personagens de cada gênero, idade e quantidade de palavras) e o título dos filmes, ou seja, no final vamos trabalhar com um conjunto com os seguintes dados:  
+
+- Quantidade de homens por filme;  
+- Quantidade de mulheres por filme;  
+- Mediana da quantidade das palavras ditas pelas mulheres em cada filma;  
+- Mediana da quantidade das palavras ditas pelos homens em cada filme;  
+- Mediana da idade das mulheres em cada filme;  
+- Mediana da idade dos homens em cada filme;  
+
+
+```{r, message = FALSE}
+
+personagens_e_filmes= merge(filmes, personagens_informacoes, by="script_id")
+
+
+# separação das informaões das mulheres
+personagens_mulheres = personagens_e_filmes %>%
+  filter(gender == "f") %>%
+  group_by(script_id, imdb_id, title, year, gross) %>%
+  summarize(n_m=n(), n_p_m=median(words), i_m=median(age))
+
+# separação das informaões dos homens
+personagens_homens = personagens_e_filmes %>%
+  filter(gender == "m") %>%
+  group_by(script_id, imdb_id, title, year, gross) %>%
+  summarize(n_h=n(), n_p_h=median(words), i_h=median(age))
+
+# junção das informações dos homens e mulheres
+dados = merge(personagens_homens, personagens_mulheres, by=c('script_id','imdb_id','title','year','gross'))
+
+# jução das informações dos homens e mulhers com o filme correspondente
+#dados = merge(dados, filmes, by="script_id")
+
+# remoção de variáveis que não serão usadas neste relatório
+  
+dados = dados %>%
+  subset(select = -c(script_id,imdb_id,year,gross))
+```
+
+```{r, message="FALSE"}
+dw = dados
+dw2 <- dw %>% 
+    mutate_each(funs(log), 2:7)
+
+dw2.scaled = dw2 %>% 
+  mutate_each(funs(as.vector(scale(.))), 2:7)
+set.seed(123)
+km = dw2.scaled %>% 
+    select(-title) %>%
+    kmeans(centers = 4, nstart = 20)
+
+dw2.scaled.km.long = km %>% 
+    augment(dw2.scaled) %>% # Adiciona o resultado de km 
+                            # aos dados originais dw2.scaled em 
+                            # uma variável chamada .cluster
+    gather(key = "variável", 
+           value = "valor", 
+           -title, -.cluster)
+
+dw2.scaled.km.long %>% 
+    ggplot(aes(x = `variável`, y = valor, group = title, colour = .cluster)) + 
+    geom_point(alpha = 0.2) + 
+    geom_line(alpha = .5) + 
+    facet_wrap(~ .cluster) 
+```
+
+
+
+
+
+
+
