@@ -40,7 +40,7 @@ personagens_informacoes = filter (personagens_informacoes, age != 'NULL') %>%
   mutate(age = as.numeric(age))
 ```
 
-```{r}
+```{r echo=FALSE, message=FALSE}
 filmes = filter(filmes, title != "Halloween")
 filmes = filter(filmes, title != "Friday the 13th")
 filmes = filter(filmes, title != "Legend")
@@ -156,7 +156,14 @@ Em que, no gráfico acima:
 
 #Redução de dimensionalidade - _Principal Component Analysis_ (PCA)
 
-A partir de agora, vamos usar a técnica PCA para reduzir a dimensionalidade dos nossos dados das 6 dimensões (de acordo com as 6 variáveis supracitadas) para 2 dimensões.
+A partir de agora, vamos usar a técnica PCA para reduzir a dimensionalidade dos nossos dados das 6 dimensões (de acordo com as 6 variáveis supracitadas) para 2 dimensões e observar os grupos numa visualização 2D..
+
+O gráfico abaixo nos mostra como é a visualização em duas diumenões dos grupos 4 grupos obtidos a partir das 6 variáveis, mostrados acima. PC1 e PC2 correspondem as duas variáveis que reduzimos o nosso problema, ou seja, PC1 e PC2 têm informações sobre as 6 variáveis que tínhamos originalmente.
+```{r}
+autoplot(km, data = dw2.scaled, label = FALSE)
+```
+
+Para saber a representatividade de dos nossos PC's da informação original obtida das 6 variáveis, basta observar no gráfico a seguir:
 
 ```{r}
 filmes_pca = dw2.scaled %>% 
@@ -172,13 +179,21 @@ tidy(filmes_pca, "pcs") %>%
 
 ```
 
+Onde, percebe-se que a redução do problema para duas dimensões (PC1 e PC2) resulta numa reprensatividade de 49,54% da informação que as 6 variáveis. Percebe-se também, a partir do gráfico acima, que na medida que aumentamos a quantidade de PC's a representatividade aumenta. Entretanto, para este relatório, usaremos a redução para duas dimensões.
+
+Como PC1 e PC2 são computadas a partir das nossas 6 variáveis iniciais, é importante saber a relação entre elas (PC1 e PC2 com nossas variáveis iniciais). O gráfico a seguir nos ajuda quanto a isso:
+
 ```{r}
-autoplot(km, data = dw2.scaled, size = 2, 
+autoplot(km, data = dw2.scaled, label = FALSE, label.size = 3, shape = T, 
          colour = "grey",
          loadings = TRUE, loadings.colour = 'blue',
          loadings.label = TRUE, 
-         loadings.label.size = 3) %>% ggplotly()
+         loadings.label.size = 3) 
 ```
+
+Percebe-se que __p_h__, __p_m__, __qt_h__ e __qt_m__ variam bastante quando um ponto está mais a esqueda ou a direita no gráfico (direção de PC1) é percebido também que elas têm um pouco de relação com PC2, pois se um ponto está mais acima ou abaixo no gráfico (direção de PC2) elas variam um pouco. Já __i_m__ e __i_h__ variam bastante quando um ponto está mais acima ou abaixo no gráfico enquanto variam pouco se um ponto está mais a direita ou a esqueda no gráfico. Então, concluimos que __p_h__, __p_m__, __qt_h__ e __qt_m__ têm muita relação com PC1 equanto __i_m__ e __i_h__ com PC2.
+
+Outra forma de observar essa mesma informação é vendo PC1 e PC2 como duas funções das 6 variáveis originais:
 
 ```{r}
 pr.out <- prcomp(select(dw2.scaled, -title), scale=FALSE)
@@ -188,17 +203,35 @@ tidy(pr.out,"variables") %>%
   spread(column, value)
 ```
 
+Os valores da tabela são os coeficientes, e a leitura é que:  
+- $PC1 = 0.227*i_h + 0.213*i_m - 0.582*p_h - 0.481*p_m + 0.499*qt_h + 0.287*qt_m $ e
+- $PC2 = 0.674*i_h + 0.663*i_m + 0.183*p_h + 0.161*p_m - 0.12*qt_h - 0.173*qt_m $
+
+Percebe-se, a partir das funções acima, que $PC1$ é inversamente proporcional a __p_h__ e __p_m__, ou seja, quando maior o valor dessas variáveis meor será o valor de $PC1$, equando as outras variáveis tem efeito contrário, quando mais elas aumentam maior será o valor de $PC1$.  
+Já para a função de $PC2$, quanto maior for os valores de __qt_h__ e __qt_m__ menor será o valor de $PC2$, enquanto se aumentarmos os valores das outras variáveis aumentamos $PC2$.
+
+Tudo isso que discutimos sobre as funções também é percebido no gráfico anterior.
+
+# Correlação entre as variáveis e os PCs.
+
+Podemos perceber também, a partir do gráfico anterior, que __p_h__, __p_m__, __qt_h__ e __qt_m__ têm uma correlação forte, assim como __i_h__ e __i_m__. Sabendo disso, percebe-se que PC1 têm mais informação de __p_h__, __p_m__, __qt_h__ e __qt_m__ do que __i_h__ e __i_m__, enquanto que para PC2 acontece o contrário, tendo mais informações de __i_h__ e __i_m__ do que das demais variáveis.  
+Se duas ou mais variáveis têm uma correlação forte, significa que elas têm informação parecida e que se substituir essas variáveis que possuem correlação alta por apenas uma, perdendo pouca informação delas, que é o que acontece com PC1 e PC2.
+
+
+#Grupos Encontrados...
+
 ```{r}
-ggplotly(autoplot(km, data = dw2.scaled, label = TRUE))
+autoplot(km, data = dw2.scaled, label = F, label.size = 3, shape = T, 
+         colour = km$cluster,
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, 
+         loadings.label.size = 3) 
 ```
 
 
-#Batizando os Grupos...
-_grupo 1_: "Galera do smartphone", apesar de ser o grupo com mais personagens (homens + mulheres) este foi o grup que menos falou, o que faz lembrar do nosso cotidiano nosso cotidiano, em que as pessoas ficam mais nos celulares do que interagindo com outras pessoas pessoalmente.  
-_grupo2_: "A experiência 'fala' mais 'alto'", este é o grupo que teve mais falas, somando as dos homens e das mulheres, e é o segundo grupo mais experiente (pessoas mais velhas). Engraçado que a quantidade de personagens (homens + mulheres) é a mais baixa de todos os grupos.  
-_grupo3_: "Mulheres sendo mulheres e homens sendo homens", este grupo tem menos mulheres do que homens e mesmo assim elas falaram mais que eles.  
-_grupo4_: "Vovôs e vovós", este é o grupo mais experiente (pessoas mais velhas). Percebe-se também que a quantidade de mulher e inferior a quantidade de homens, e mesmo assim, elas ainda falaram mais que eles.  
+Podemos perceber os seguintes grupos, a partir do gráfico acima:
 
-Fazendo uma análise geral a partir da idade, percebe-se que as idades das mulheres e dos homens são parecidas nos grupos 1 e 3, já nos grupos 2 e 4, percebe-se que as mulheres têm, em geral, mais idade que os homens.  
-É percebido também que as mulheres falam mais que os homens, no geral.
-Quanto a quantidade de homens e mulheres, percebe-se que, no grupo 3, elas são minoria enquanto no grupo 2 elas são maioria. Já nos grupo 1 e 4, eu diria que não há muita diferença na quantidade de mulheres e de homens, mesmo tendo picos que aparentam resultar em mais mulheres no grupo 1 e mais homens no grupo 4.
+_Experientes_ (grupo com a cor vermelha), este é o grupo que parece ser o que tem os atores mais velhos, tanto homens quanto mulheres. Tem uma quantidade razoável de atores e nao falam muito nem pouco.  
+_Falantes_ (grupo com a cor verde), este é o gupo que tem os atores que mais falam nos filmes. Também aparenta ser um grupo bem equilibrado quanto a idade e o que tem menos atores.  
+_Muito ator_ (grupo com a cor azul), este é o grupo que tem a maior quantidade de atores (homens + mulheres) de todos. Também parece ser um grupo em que os atores têm pouca idade, no geral e é o que menos fala.  
+_Meio Termo_ (grupo com a cor preta), este grupo é o que tem menos idade, no geral, não falam muito durante o filme (mas também não é o que menos fala), não tem muitos atores (mas também não é o que tem menos). Parece ser um grupo que fica mais no meio termo.
