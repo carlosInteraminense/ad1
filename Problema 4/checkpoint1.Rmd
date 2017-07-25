@@ -1,0 +1,100 @@
+---
+title: "Checkpoint1"
+author: "Carlos Interaminense"
+date: "July 25, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(plotly)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(tidyverse)
+library(resample) # <-- Para bootstrap!
+library(lubridate)
+theme_set(theme_bw())
+```
+
+#Dados de commits no GitHub
+
+##Descritivo dos dados
+
+Usaremos neste relatório uma amostra dos dados do GitHub, que correspondem a quantidade de usuários que editaram arquivos com extensão em comum (arquivos referentes a linguagens de programação) em em um determindado dia. Sabemos que o GitHub dispõe de uma quantidade enorme de dados, chutaria algo como _Terabytes_, portanto, neste relatório vamos considerar apenas uma amostra desses dados referentes aos anos de 2016 e 2017 de arquivos com algumas extensões que são referentes as liguagens de programação (ex: java, js, py, entre outras).
+
+```{r, message=FALSE}
+#Carregando os dados
+dados = read_csv("./github-users-commiting-filetypes.csv");
+```
+É esperado que:
+* os dias do mês estajam entre 1-31;
+* os meses estejam entre 1-12;
+* a quantidade de usuários não seja negativa ( < 0 )
+
+A partir da tabela a seguir, podemos verificar que os dados estão dentro dos intervalos esperados.
+
+```{r, message=FALSE}
+
+min_month_day = min(dados$month_day);
+max_month_day = max(dados$month_day);
+min_month = min(dados$the_month);
+max_month = max(dados$the_month);
+min_users = min(dados$users);
+max_users = max(dados$users);
+
+
+m  <- matrix(c(min_month_day, max_month_day, min_month, max_month, min_users, max_users), ncol=2,byrow = TRUE);
+colnames(m) <- c("mínimo", "máximo")
+rownames(m) <- c("Dias do mês", "Mês", "#Usuários")
+m <- as.table(m)
+m
+
+```
+
+Em que, na Tabela acima, #Usuários é a quantidade de usuários.
+
+Como já estamos convencidos que não temos _outliers_ nos nossos dados, podemos prosseguir com o relatório. Vou escolher duas linguagens de programação e responder duas perguntas. As linguagens que escolhi foram: PYTHON e C++.
+
+```{r, message=FALSE}
+
+dados_python <- dados %>%
+  filter(file_extension == "py")
+
+dados_cpp <- dados %>%
+  filter(file_extension == "cpp")
+```
+
+
+###Pergunta 1: Para cada uma delas, há uma diferença significativa na sua popularidade durante a semana e durante o fim de semana? Essa diferença é grande?
+
+Para responder esta pergunta, é preciso criar uma nova váriável no conjunto dos dados das linguagens escolhidas, para conseguirmos saber o dia da semana de cada dado e separar os dois conjuntos de dados (finais de semana e dias de semana).
+
+```{r, message=FALSE}
+  
+  dados_cpp$date <- paste(dados_cpp$month_day, dados_cpp$the_month, dados_cpp$the_year, sep = "-")
+  dados_cpp  <- dados_cpp %>%
+    mutate(day = weekdays(as.Date(date,'%d-%m-%Y')))
+
+  dados_python$date <- paste(dados_python$month_day, dados_python$the_month, dados_python$the_year, sep = "-")
+  dados_python  <- dados_python %>%
+    mutate(day = weekdays(as.Date(date,'%d-%m-%Y')))
+  
+  cpp_semana <- dados_cpp %>%
+    filter( day != "sábado", day != "domingo" )
+  
+  cpp_fds <- dados_cpp %>%
+    filter( day == "sábado" | day == "domingo" )
+
+  python_semana <- dados_python %>%
+    filter( day != "sábado", day != "domingo" )
+  
+  python_fds <- dados_python %>%
+    filter( day == "sábado" | day == "domingo" )
+
+  
+```
+
