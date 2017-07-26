@@ -1,0 +1,186 @@
+---
+title: "Checkpoint1"
+author: "Carlos Interaminense"
+date: "July 25, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(plotly)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(tidyverse)
+library(resample) # <-- Para bootstrap!
+library(lubridate)
+theme_set(theme_bw())
+```
+
+#Dados de commits no GitHub
+
+Usaremos neste relatório uma amostra dos dados do GitHub, que correspondem a quantidade de usuários que editaram arquivos com extensão em comum (arquivos referentes a linguagens de programação) em em um determindado dia. Sabemos que o GitHub dispõe de uma quantidade enorme de dados, chutaria algo como _Terabytes_, portanto, neste relatório vamos considerar apenas uma amostra desses dados referentes aos anos de 2016 e 2017 de arquivos com algumas extensões que são referentes as liguagens de programação (ex: java, js, py, entre outras).
+
+##Descritivo dos dados
+
+```{r, message=FALSE}
+#Carregando os dados
+dados = read_csv("./github-users-commiting-filetypes.csv");
+```
+É esperado que:  
+- os dias do mês estajam entre 1-31;  
+- os meses estejam entre 1-12;  
+- a quantidade de usuários não seja negativa ( < 0 )  
+
+A partir da tabela a seguir, podemos verificar que os dados estão dentro dos intervalos esperados.
+
+```{r, message=FALSE}
+
+min_month_day = min(dados$month_day);
+max_month_day = max(dados$month_day);
+min_month = min(dados$the_month);
+max_month = max(dados$the_month);
+min_users = min(dados$users);
+max_users = max(dados$users);
+
+
+m  <- matrix(c(min_month_day, max_month_day, min_month, max_month, min_users, max_users), ncol=2,byrow = TRUE);
+colnames(m) <- c("mínimo", "máximo")
+rownames(m) <- c("Dias do mês", "Mês", "#Usuários")
+m <- as.table(m)
+m
+
+```
+
+Em que, na Tabela acima, #Usuários é a quantidade de usuários.
+
+Para termos uma noção da distribuição dos valores dos usuários, usaremos o boxplot abaixo:
+```{r, message=FALSE}
+
+dados %>%
+  ggplot(aes(x = "", y = users)) +
+  geom_boxplot() +
+  xlab("")
+
+```
+
+O gráfico acima deixa claro que existem valores considerados _outliers_ (sequência de pontos da cor preta na parte superior do boxplot). Uma forma de lidar com esses _outliers_ é usar a mediana dos valores, já que a mesma não é influenciada por valores extremos.
+
+Agora podemos prosseguir com o relatório. Vou escolher duas linguagens de programação e responder duas perguntas. As linguagens que escolhi foram: PYTHON e C++.
+
+```{r, message=FALSE}
+
+dados_python <- dados %>%
+  filter(file_extension == "py")
+
+dados_cpp <- dados %>%
+  filter(file_extension == "cpp")
+```
+
+
+###Pergunta 1: Para cada uma delas, há uma diferença significativa na sua popularidade durante a semana e durante o fim de semana? Essa diferença é grande?
+
+Para responder esta pergunta, é preciso criar uma nova váriável no conjunto dos dados das linguagens escolhidas, para conseguirmos saber o dia da semana de cada dado e separar os dois conjuntos de dados (finais de semana e dias de semana).
+
+```{r, message=FALSE}
+  
+  dados_cpp$date <- paste(dados_cpp$month_day, dados_cpp$the_month, dados_cpp$the_year, sep = "-")
+  dados_cpp  <- dados_cpp %>%
+    mutate(weekday = (weekdays(as.Date(date,'%d-%m-%Y')) == 'sábado' | weekdays(as.Date(date,'%d-%m-%Y')) == 'domingo' )   )
+
+  dados_python$date <- paste(dados_python$month_day, dados_python$the_month, dados_python$the_year, sep = "-")
+  dados_python  <- dados_python %>%
+    mutate(weekday = (weekdays(as.Date(date,'%d-%m-%Y')) == 'sábado' | weekdays(as.Date(date,'%d-%m-%Y')) == 'domingo' )   )
+```
+
+Agora, vamos verificar a diferença entre a popularidade das linguagem de programação C++ durante a semana e nos finais de semana.  
+Como vimos na tabela anterior, o número mínimo de usurários tem valores muito extremos e, como vamos usar essa variável para medir a popularidade das linguagens de programação, vamos considerar o uso da mediana nos nossos cálculos.
+```{r, message = FALSE}
+b1  = dados_cpp %>%
+  filter(weekday == TRUE) %>%
+  bootstrap(median(users))
+
+median_cpp.weekday = b1 %>%
+  CI.percentile(props = c(.025, .975))
+
+b2  = dados_cpp %>%
+  filter(weekday == FALSE) %>%
+  bootstrap(median(users))
+
+median_cpp.fds = b2 %>%
+  CI.percentile(props = c(.025, .975))
+
+df.medians = data.frame(rbind(median_cpp.weekday, median_cpp.fds))
+df.medians$medida= c("durante a semana", "Finais de semana")
+
+df.medians %>% 
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  ggtitle("Popularidade de C++")
+```
+
+
+A partir do gráfico acima, percebemos que C++ é uma linguagem que é significativamente mais comum durante os finais de semana, tendo uma diferença grande de popularidade entre finais de semana e durante a semana.
+
+Similarmente com o que fizemos com a linguagem de programação C++, vamos fazer para PYTHON também usando a técnica de bootstrap.
+
+```{r}
+b1  = dados_python %>%
+  filter(weekday == TRUE) %>%
+  bootstrap(median(users))
+
+median_cpp.weekday = b1 %>%
+  CI.percentile(props = c(.025, .975))
+
+b2  = dados_python %>%
+  filter(weekday == FALSE) %>%
+  bootstrap(median(users))
+
+median_cpp.fds = b2 %>%
+  CI.percentile(props = c(.025, .975))
+
+df.medians = data.frame(rbind(median_cpp.weekday, median_cpp.fds))
+df.medians$medida= c("durante a semana", "Finais de semana")
+
+df.medians %>% 
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2)
+
+```
+
+A partir do gráfico acima, pecebemos que PYTHON também é uma liguagem de programação que é significativamente mais usada durante os finais de semana, tendo uma diferença muito grande entre a popularidade entre os finais de semana e durante a semana.
+
+###Pergunta 2): Existe uma diferença significativa entre as duas linguagens na sua variação de popularidade nos finais de semana?
+
+Agora, vamos reaizar um comparativo similar ao anterior mas consideraremos as duas linguagens de uma só vez, analisando sua popularidade nos finais de semana, apenas.
+
+```{r, message = FALSE}
+b1  = dados_python %>%
+  filter(weekday == FALSE) %>%
+  bootstrap(median(users))
+
+median.python_fds = b1 %>%
+  CI.percentile(props = c(.025, .975))
+
+b2  = dados_cpp %>%
+  filter(weekday == FALSE) %>%
+  bootstrap(median(users))
+
+median.cpp_fds = b2 %>%
+  CI.percentile(props = c(.025, .975))
+
+df.medians = data.frame(rbind(median.python_fds, median.cpp_fds))
+df.medians$medida= c("Python nos finais de semana", "C++ nos Finais de semana")
+
+df.medians %>% 
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  ggtitle("Comparação entre C++ e PYTHON")
+
+
+```
+
+A partir do gráfico acima, podemos concluir que PYTHON é significativamente mais popular que C++ durante os finais de semana. Percebemos também que a diferença entre popularidade das duas linguagens é muito grande.
