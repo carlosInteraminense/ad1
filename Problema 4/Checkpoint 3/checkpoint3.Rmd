@@ -1,0 +1,257 @@
+---
+title: "Checkpoint1"
+author: "Carlos Interaminense"
+date: "July 25, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(plotly)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(tidyverse)
+library(resample) # <-- Para bootstrap!
+library(lubridate)
+library(plyr)
+theme_set(theme_bw())
+```
+
+#Dados de commits no GitHub
+
+Usaremos neste relatório uma amostra dos dados do GitHub, que correspondem a quantidade de usuários que editaram arquivos com extensão em comum (arquivos referentes a linguagens de programação) em em um determindado dia. Sabemos que o GitHub dispõe de uma quantidade enorme de dados, chutaria algo como _Terabytes_, portanto, neste relatório vamos considerar apenas uma amostra desses dados referentes aos anos de 2016 e 2017 de arquivos com algumas extensões que são referentes as liguagens de programação (ex: java, js, py, entre outras).
+
+##Descritivo dos dados
+
+```{r, message=FALSE}
+#Carregando os dados
+dados = read_csv("./github-users-commiting-filetypes.csv");
+```
+É esperado que:  
+- os dias do mês estajam entre 1-31;  
+- os meses estejam entre 1-12;  
+- a quantidade de usuários não seja negativa ( < 0 )  
+
+A partir da tabela a seguir, podemos verificar que os dados estão dentro dos intervalos esperados.
+
+```{r, message=FALSE}
+
+min_month_day = min(dados$month_day);
+max_month_day = max(dados$month_day);
+min_month = min(dados$the_month);
+max_month = max(dados$the_month);
+min_users = min(dados$users);
+max_users = max(dados$users);
+
+
+m  <- matrix(c(min_month_day, max_month_day, min_month, max_month, min_users, max_users), ncol=2,byrow = TRUE);
+colnames(m) <- c("mínimo", "máximo")
+rownames(m) <- c("Dias do mês", "Mês", "#Usuários")
+m <- as.table(m)
+m
+
+```
+
+Em que, na Tabela acima, #Usuários é a quantidade de usuários.
+
+Para termos uma noção da distribuição dos valores dos usuários, usaremos o boxplot abaixo:
+```{r, message=FALSE}
+
+dados %>%
+  ggplot(aes(x = "", y = users)) +
+  geom_boxplot() +
+  xlab("")
+
+```
+
+O gráfico acima deixa claro que existem valores considerados _outliers_ (sequência de pontos da cor preta na parte superior do boxplot). Uma forma de lidar com esses _outliers_ é usar a mediana dos valores, já que a mesma não é influenciada por valores extremos.
+
+Agora podemos prosseguir com o relatório...
+
+# Pergunta 1: No geral (independente da linguagem de programação), as pessoas programam mais durante a semana ou no final de semana? Essa diferença é grande?
+
+```{r}
+dados$date <- paste(dados$month_day, dados$the_month, dados$the_year, sep = "-")
+
+dados.agrupados <- aggregate(dados[, 5], list(dados$date), sum)
+
+dados.agrupados  <- dados.agrupados %>%
+  mutate(nome_dia = weekdays(as.Date(Group.1,'%d-%m-%Y')) )
+
+dados.agrupados  <- dados.agrupados %>%
+    mutate(is_fds = (nome_dia == 'sábado' | nome_dia== 'domingo' )   )
+
+dados.agrupados  <- dados.agrupados %>%
+  mutate(mes = month(as.Date(Group.1,'%d-%m-%Y')) )
+
+# Galera do FDS
+b1 = dados.agrupados %>%
+  filter(is_fds) %>%
+  bootstrap(median(users))
+
+median.fds = b1 %>%
+  CI.percentile(props = c(.025, .975))
+
+# Galera da semana (seg-sexta)
+b2 = dados.agrupados %>%
+  filter(is_fds != TRUE) %>%
+  bootstrap(median(users))
+
+median.semana = b2 %>%
+  CI.percentile(props = c(.025, .975))
+
+df.medians = data.frame(rbind(median.fds, median.semana))
+df.medians$medida= c("Finais de semana", "Durante a semana")
+
+df.medians %>% 
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  ggtitle("Popularidade: durante a semana X FDS")
+
+```
+
+```{r}
+fds <- dados.agrupados %>%
+  filter(is_fds)
+semana <- dados.agrupados %>%
+  filter(is_fds == FALSE)
+
+b <- bootstrap2( data = semana$users, 
+                 data2 = fds$users, 
+                 median)
+
+b.ci = CI.percentile(b, probs = c(.025, .975))
+
+data.frame(b.ci) %>% 
+  ggplot(aes(x = "Diferença", ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  geom_hline(yintercept = 0, colour = "darkorange")
+```
+
+
+# Pergunta 1.1 - Sabendo qual o período da semana (fds ou nao) que as pessoas mais programam (Pergunta 1), qual o dia desse período que as pessoas mais programam? A diferença é grande, com relação aos outros dias?
+
+```{r}
+# segunda
+median.segunda = dados.agrupados %>%
+  filter(nome_dia == "segunda") %>%
+  bootstrap(median(users)) %>%
+  CI.percentile(props = c(.025, .975))
+
+# terça
+median.terça = dados.agrupados %>%
+  filter(nome_dia == "terça") %>%
+  bootstrap(median(users)) %>%
+  CI.percentile(props = c(.025, .975))
+
+# quarta
+median.quarta = dados.agrupados %>%
+  filter(nome_dia == "quarta") %>%
+  bootstrap(median(users))%>%
+  CI.percentile(props = c(.025, .975))
+
+# quinta
+median.quinta  = dados.agrupados %>%
+  filter(nome_dia == "quinta") %>%
+  bootstrap(median(users)) %>%
+  CI.percentile(props = c(.025, .975))
+
+# sexta
+median.sexta = dados.agrupados %>%
+  filter(nome_dia == "sexta") %>%
+  bootstrap(median(users)) %>%
+  CI.percentile(props = c(.025, .975))
+
+df.medians = data.frame(rbind(median.segunda, median.terça, median.quarta, median.quinta, median.sexta))
+df.medians$medida= c("Segunda", "Terça", "Quarta", "Quinta", "Sexta")
+
+df.medians %>% 
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  ggtitle("Popularidade: durante a semana")
+
+```
+
+# Pergunta 2: Considerando as linguagens de programação: Python e JavaScript, qual delas é a mais popular no período de férias (janeiro,Junho e dezembro)?
+
+```{r}
+
+dados_python = dados %>%
+  filter(file_extension == "py")
+
+dados_javascript = dados %>%
+  filter(file_extension == "js")
+
+# férias python
+median_python.férias = dados_python %>%
+  filter(the_month == 1 | the_month == 6 | the_month == 12) %>%
+  bootstrap(median(users)) %>%
+  CI.percentile(props = c(.025, .975))
+
+# férias JavaScript
+median_javascript.férias = dados_javascript %>%
+  filter(the_month == 1 | the_month == 6 | the_month == 12) %>%
+  bootstrap(median(users)) %>%
+  CI.percentile(props = c(.025, .975))
+
+df.medians = data.frame(rbind(median_python.férias, median_javascript.férias))
+df.medians$medida= c("Python", "JavaScript")
+
+df.medians %>% 
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  ggtitle("Popularidade nas férias: Python X JS")
+
+
+```
+# Pergunta 2.1:  Considerando a linguagem de programação JavaScript como sendo as que as pessoas mais programam nas férias (resposta da questão 2), elas programam mais durante a semana ou nos finais de semana, ou seja, a resposta da questão 1 se mantém? Se a resposta for a mesma da questão 1, qual é o dia da semana que as pessoas mais programam em JavaScript no período de férias?
+
+```{r}
+dados_javascript  <- dados_javascript %>%
+  mutate(nome_dia = weekdays(as.Date(date,'%d-%m-%Y')) )
+
+dados_javascript  <- dados_javascript %>%
+    mutate(is_fds = (nome_dia == 'sábado' | nome_dia== 'domingo' )   )
+
+# Galera do FDS
+median.fds = dados_javascript %>%
+  filter(is_fds) %>%
+  bootstrap(median(users))%>%
+  CI.percentile(props = c(.025, .975))
+
+# Galera da semana (seg-sexta)
+median.semana = dados_javascript %>%
+  filter(is_fds != TRUE) %>%
+  bootstrap(median(users)) %>%
+  CI.percentile(props = c(.025, .975))
+
+df.medians = data.frame(rbind(median.fds, median.semana))
+df.medians$medida= c("Finais de semana", "Durante a semana")
+
+df.medians %>% 
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  ggtitle("Popularidade: durante a semana X FDS")
+```
+
+```{r}
+fds <- dados_javascript %>%
+  filter(is_fds)
+semana <- dados_javascript %>%
+  filter(is_fds == FALSE)
+
+b <- bootstrap2( data = semana$users, 
+                 data2 = fds$users, 
+                 median)
+
+b.ci = CI.percentile(b, probs = c(.025, .975))
+
+data.frame(b.ci) %>% 
+  ggplot(aes(x = "Diferença", ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  geom_hline(yintercept = 0, colour = "darkorange")
+```
