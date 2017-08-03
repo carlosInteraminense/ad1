@@ -68,11 +68,16 @@ dados %>%
 
 ```
 
-O gráfico acima deixa claro que existem valores considerados _outliers_ (sequência de pontos da cor preta na parte superior do boxplot). Uma forma de lidar com esses _outliers_ é usar a mediana dos valores, já que a mesma não é influenciada por valores extremos.
+O gráfico acima deixa claro que existem valores considerados _outliers_ (sequência de pontos da cor preta na parte superior do boxplot). Uma forma de lidar com esses _outliers_ é usar a mediana dos valores, já que a mesma não é influenciada por valores extremos. Logo, neste relatório, usaremos a mediana.
 
 Agora podemos prosseguir com o relatório...
 
 # Pergunta 1: No geral (independente da linguagem de programação), as pessoas programam mais durante a semana ou no final de semana? Essa diferença é grande?
+
+Para responder esta pergunta, temos que saber se os usuários modificaram os arquivos durante a semana ou no final de semana e, como queremos saber o resultado independente da linguagem de programação, temos que agrupar os dados pela a data, somando as modificações daquele dia para qualquer linguagem de programação.
+
+Agora, podemos verificar se as pessoas programam mais durante a semana ou durante os finais de semana, usando a técnica de bootstrap..
+
 
 ```{r}
 dados$date <- paste(dados$month_day, dados$the_month, dados$the_year, sep = "-")
@@ -114,6 +119,9 @@ df.medians %>%
 
 ```
 
+A partir do gráfico acima percebemos que as pessoas preferem programar durante a semana do que no final de semana e podemos perceber também que a diferença é grande.
+O gráfico a seguir nos ajuda a entender ainda mais a nossa conclusão.
+
 ```{r}
 fds <- dados.agrupados %>%
   filter(is_fds)
@@ -132,8 +140,11 @@ data.frame(b.ci) %>%
   geom_hline(yintercept = 0, colour = "darkorange")
 ```
 
+Percebam que o valor 0 (zero) não está entre o intervalo de confiança, o que nos faz concluir que é significativa a preferência de programar durante a semana do que no final de semana.
 
 # Pergunta 1.1 - Sabendo qual o período da semana (fds ou nao) que as pessoas mais programam (Pergunta 1), qual o dia desse período que as pessoas mais programam? A diferença é grande, com relação aos outros dias?
+
+Para responder esta pergunta, devemos usaremos a mesma lógica da questão anterior (agrupando os dados pela data, omando as modificações daquele dia para qualquer linguagem de programação), mas agora queremos saber qual o dia que as pessoas mais programam. Para fazer isso, vamos visualizar os dados referentes a cada dia, também usando a técnica bootstrap:
 
 ```{r}
 # segunda
@@ -176,7 +187,13 @@ df.medians %>%
 
 ```
 
+As conclusões que podemos tomar com base no gráfico acima é que as pessoas programam mais nas terças, quartas e quintas do que nas sextas. Não podemos concluir qual o dia da semana que as pessoas mais programam, pois existe um "empate técnico" entre: segunda, terça, quarta e quinta. Esse "empate técnico" existe porque existe interseção entre os intervalos da segunda, terça, quarta e quinta.
+
 # Pergunta 2: Considerando as linguagens de programação: Python e JavaScript, qual delas é a mais popular no período de férias (janeiro,Junho e dezembro)?
+
+Para responder esta pergunta, temos que agrupar as duas linguagens de programação. Na resposta desta pergunta, também usaremos a técnica booststrap, dessa vez considerando apenas os meses de férias.
+
+O gráfico a seguir mostra os resultados obtidos.
 
 ```{r}
 
@@ -208,7 +225,13 @@ df.medians %>%
 
 
 ```
-# Pergunta 2.1:  Considerando a linguagem de programação JavaScript como sendo as que as pessoas mais programam nas férias (resposta da questão 2), elas programam mais durante a semana ou nos finais de semana, ou seja, a resposta da questão 1 se mantém? Se a resposta for a mesma da questão 1, qual é o dia da semana que as pessoas mais programam em JavaScript no período de férias?
+
+A partir do gráfico acima, percebemos que as pessoas preferem programar em JavaScript do que em Python, no período de férias. Percebemos também que esta diferença é grande.
+
+# Pergunta 2.1:  Considerando a linguagem de programação JavaScript como sendo as que as pessoas mais programam nas férias (resposta da questão 2), elas programam mais durante a semana ou nos finais de semana neste período de férias, ou seja, a resposta da questão 1 se mantém?
+
+Esta resposta é similiar a resposta da questão 1, mas usaremos apenas os dados referentes a JavaScript.
+A seguir  é mostrado o gráfico com os resultados obtidos.
 
 ```{r}
 dados_javascript  <- dados_javascript %>%
@@ -219,12 +242,14 @@ dados_javascript  <- dados_javascript %>%
 
 # Galera do FDS
 median.fds = dados_javascript %>%
+  filter(the_month == 1 | the_month == 6 | the_month == 12) %>%
   filter(is_fds) %>%
   bootstrap(median(users))%>%
   CI.percentile(props = c(.025, .975))
 
 # Galera da semana (seg-sexta)
 median.semana = dados_javascript %>%
+  filter(the_month == 1 | the_month == 6 | the_month == 12) %>%
   filter(is_fds != TRUE) %>%
   bootstrap(median(users)) %>%
   CI.percentile(props = c(.025, .975))
@@ -238,10 +263,17 @@ df.medians %>%
   ggtitle("Popularidade: durante a semana X FDS")
 ```
 
+Percebemos que as pessas ainda preferem programar durante a semana em javaScript, mesmo estando de férias. Percebe-se também, que esta diferença é grande. Logo, a resposra da questão 1 se mantém verdadeira com a linguagem JavaScript durante as férias.
+
+O gráfico a seguir nos ajuda a entender ainda mais a nossa conclusão.
+
 ```{r}
 fds <- dados_javascript %>%
+  filter(the_month == 1 | the_month == 6 | the_month == 12) %>%
   filter(is_fds)
+
 semana <- dados_javascript %>%
+  filter(the_month == 1 | the_month == 6 | the_month == 12) %>%
   filter(is_fds == FALSE)
 
 b <- bootstrap2( data = semana$users, 
@@ -255,3 +287,5 @@ data.frame(b.ci) %>%
   geom_errorbar(width = .2) + 
   geom_hline(yintercept = 0, colour = "darkorange")
 ```
+
+Percebam que o valor 0 (zero) não está entre o intervalo de confiança, o que nos faz concluir que é significativa a preferência de programar em JavaScript nas férias, durante a semana do que no final de semana.
