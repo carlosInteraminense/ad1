@@ -1,0 +1,88 @@
+---
+title: "checkpoint 4"
+author: "Carlos Interaminense"
+date: "August 7, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(plotly)
+library(ggplot2)
+library(GGally)
+library(dplyr)
+library(tidyverse)
+library(resample) # <-- Para bootstrap!
+library(lubridate)
+library(plyr)
+theme_set(theme_bw())
+```
+
+
+#Testes de hipótese x Intervalos de Confiança
+
+Neste relatório vamos refazer uma análise que foi realizada no checkpoint anterior. Mas agora, vamos considerar testes de hipótese em lugar de intervalos de confiança. No final deste relatório vamos realizar uma comparação entre as duas respostas (testes de hipótese de Intervalos de confiança). Também _tentaremos_ fazer uma breve explicação sobre p-valor...
+
+*Pergunta escolhida para responder usando Testes de Hipótese:*  
+
+##No geral (independente da linguagem de programação), as pessoas programam mais durante a semana ou no final de semana? Essa diferença é grande?
+
+O primeiro passo é carregar os dados.
+_No checkpoint anterior nós já descrevemos os dados, por isso não serão descritos neste relatório_
+```{r, message=FALSE}
+#Carregando os dados
+dados = read_csv("./github-users-commiting-filetypes.csv");
+```
+
+Para responder esta pergunta, temos que saber se os usuários modificaram os arquivos durante a semana ou no final de semana e, como queremos saber o resultado independente da linguagem de programação, temos que agrupar os dados pela a data, somando as modificações daquele dia para qualquer linguagem de programação.
+
+```{r}
+dados$date <- paste(dados$month_day, dados$the_month, dados$the_year, sep = "-")
+
+dados.agrupados <- aggregate(dados[, 5], list(dados$date), sum)
+
+dados.agrupados  <- dados.agrupados %>%
+  mutate(nome_dia = weekdays(as.Date(Group.1,'%d-%m-%Y')) )
+
+dados.agrupados  <- dados.agrupados %>%
+    mutate(is_fds = (nome_dia == 'sábado' | nome_dia== 'domingo' )   )
+
+```
+
+### Usando Intervalos de Confiança
+
+```{r}
+# Galera do FDS
+b1 = dados.agrupados %>%
+  filter(is_fds) %>%
+  bootstrap(median(users))
+
+median.fds = b1 %>%
+  CI.percentile(props = c(.025, .975))
+
+# Galera da semana (seg-sexta)
+b2 = dados.agrupados %>%
+  filter(is_fds != TRUE) %>%
+  bootstrap(median(users))
+
+median.semana = b2 %>%
+  CI.percentile(props = c(.025, .975))
+
+df.medians = data.frame(rbind(median.fds, median.semana))
+df.medians$medida= c("Finais de semana", "Durante a semana")
+
+df.medians %>% 
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) + 
+  geom_errorbar(width = .2) + 
+  ggtitle("Popularidade: durante a semana X FDS")
+```
+
+A partir do gráfico acima (usando intervalos de confiança) percebemos que as pessoas preferem programar durante a semana do que no final de semana e podemos perceber também que a diferença é grande.
+
+### Usando Testes de Hipótese
+
+
+
