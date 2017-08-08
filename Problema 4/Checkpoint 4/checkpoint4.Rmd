@@ -16,9 +16,9 @@ library(GGally)
 library(dplyr)
 library(tidyverse)
 library(resample) # <-- Para bootstrap!
-library(lubridate)
-library(plyr)
+library(boot) 
 theme_set(theme_bw())
+
 ```
 
 
@@ -83,6 +83,58 @@ df.medians %>%
 A partir do gráfico acima (usando intervalos de confiança) percebemos que as pessoas preferem programar durante a semana do que no final de semana e podemos perceber também que a diferença é grande.
 
 ### Usando Testes de Hipótese
+
+O primeiro passo é guardar a diferença das medianas dos _commits_ das pessoas que programaram durante a semana com os que programaram nos finais de semana.
+
+```{r}
+medianas_semanaXfds = dados.agrupados %>% 
+  group_by(is_fds) %>% 
+  summarise(mediana = median(users))
+
+medianas_semanaXfds
+diff.medianas_semanaXfds = diff(medianas_semanaXfds$mediana)
+diff.medianas_semanaXfds
+```
+
+A diferença foi de -28632.
+
+Agora vejamos o quão diferente seria encontrarmos uma diferença do tamanho que encontramos (-28632) _se não houvesse associação entre o período da semana (dia de semana ou final de semana) e a quantidade de commit_. A situação onde não existe associação é chamada de _hipótese nula_. Se a diferença que observamos em nossa amostra acontece facilmente na hipótese nula, isso significa que não temos evidência forte de associação: o que observamos acontece também quando não há associação.
+
+
+No caso onde a diferença que observamos é improvável na hipótese nula, então observamos algo que é indicativo de associação. Repare que é uma dupla negação: se **não acontece** associação como a que vimos na amostra na situação onde **não** há associação, então temos evidência de que há associação. 
+
+
+Agora, vamos verificar na prática o que discutimos acima...
+```{r}
+set.seed(1)
+diffs = replicate(10000, {
+  medianas = dados.agrupados %>% 
+    mutate(id_embaralhado = sample(is_fds, n())) %>% 
+    group_by(id_embaralhado) %>% 
+    summarise(mediana = median(users))
+  return(diff(medianas$mediana))
+})
+glimpse(diffs)
+
+tibble(diferenca = diffs) %>% 
+  ggplot(aes(x = diferenca)) + 
+  geom_histogram(bins = 30) + 
+  geom_vline(xintercept = diff.medianas_semanaXfds)
+```
+
+
+```{r}
+p.valor = sum(abs(diffs) >= abs(diff.medianas_semanaXfds)) / length(diffs)
+p.valor
+```
+Sabendo que a nossa hipótese nula é que não há relação entre o período da semana e os commits, percebemos a partir do gráfico acima que em nenhum caso ela foi verdadeira, ou seja, em nenhum caso o valor da diferença, em módulo, foi maior que -28632, também em módulo (computado anteriormente neste relatório), ou seja, o p-valor foi igual a 0 (ZERO). O que significa que a nossa hipótese nula é falsa e, portanto, concluimos que existe uma associação entre o período da semana e os commits e que os usuários do GitHub preferem programar durante a semana do que os finais de semana, independente da linguagem de programação.
+
+**Dessa forma, respondemos a nossa pergunta inicial usando intervalos de confiança e testes de hipótese, e chegamos a mesma conclusão: Os usuários do GitHub, no geral, preferem programar durante a semana do que os finais de semana, independente da linguagem de programação. A diferença entre as duas respostas (Intervalos de confiança e Testes de hipótese) está no fato de que, usar Intervalos de confiança, controlamos a significância estatística do resultado e sabemos a faixa de valores que esperamos que aconteça com uma confiança de X%, em que, quanto maior a confiança maior será a faixa de valores, o que nao temos nos testes de hipóteses.
+
+**Aproveitando o nosso exemplo para explicar o que é o p-valor...**
+**p-valor** é a probabilidade de acontecer um exemplo em que a hipótese nula seja verdadeira, no nosso exemplo é a probabilidade de acontecer um exemplo de uma amostra que a diferença entre a mediana dos commits nos finais de semana e a mediana dos commits nos dias da semana seja maior ou igual (**em módulo**) ao que obtivemos na amostra (-28632), também em módulo. Um p-valor <= 0.05 (5%) é considerado bom, na literatura.
+
+
 
 
 
