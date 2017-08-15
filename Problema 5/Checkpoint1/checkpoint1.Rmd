@@ -1,0 +1,20 @@
+---
+title: "checkpoint1"
+author: "Carlos Interaminense"
+date: "15 de agosto de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+dados <- read_csv('speed-dating.csv')
+
+dados <- dados %>%
+  filter(attr != 'NA', like != 'NA', )
+
+
+```
+
