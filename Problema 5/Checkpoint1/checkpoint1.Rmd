@@ -9,12 +9,170 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
-dados <- read_csv('speed-dating.csv')
-
-dados <- dados %>%
-  filter(attr != 'NA', like != 'NA', )
-
-
+```{r, message=FALSE}
+suppressWarnings(library(tidyverse))
+library(tidyverse)
+theme_set(theme_bw())
+library(GGally)
+library(ggfortify)
+library(broom)
+require(ISLR)
+library(modelr) # devtools::install_github("hadley/modelr")
 ```
 
+#Encontros Relâmpagos
+
+Neste relatório usaremos uma base de dados sobre encontros relâmpagos, ou, do inglês, _Speed date_, envolvendo 310 jovens americanos, que se tinham encontros de 4 minutos com outra pessoa. Após os encontros, cada jovem preenchia uma fichas avaliando aqueles com quem se encontraram e é um conjunto dessas fichas que a nossa base de dados é formada. Atualmente, a base contém dados de 5000 encontros.
+O objetivo deste relatório é usar regressão para responder duas perguntas...  
+Para este relatório vamos considerar 4 variáveis das amostras, que são:  
+* attr: Indica o quão atraente uma pessoa achou a outra;  
+* fun: Indica o quão divertido uma pessoa achou a outra; e    
+* like: Nossa variável resposta, que indica, no geral, quanto uma pessoa gostou da outra.
+
+Amostras que possuem dados 'NA' foram desconsideradas neste relatório.
+
+```{r, message=FALSE}
+dados <- read_csv('speed-dating.csv')
+dados <- dados %>%
+  filter(attr != 'NA', fun != 'NA', like != 'NA')
+```
+
+
+##Agora vamos às perguntas
+# Achar a outra pessoa divertida e ser atraente ajuda no quão uma pessoa pode gostar da outra?
+
+Primeiro, vamos observar se existe correlação entre as variáveis acima.
+
+```{r message= FALSE}
+dados %>%
+  select(attr, fun, like) %>%
+  ggpairs(lower = list(continuous = wrap("points", alpha = 0.3)))
+```
+
+Já é possivel perceber, a partir do gráfico acima, que tanto a váriável _fun_ (divertido) quanto a variável _attr_ (atraente), apresentam correlações positivas com a variável _like_ (gostar), com 0.683 e 0.671, respectivamente.
+
+Para responder a pergunta, vamos usar regressão. Também vamos considerar a variável _like_ como sendo a variável resposta.
+Vamos criar um modelo de _linke_ em função  _fun_ e _attr_:
+```{r, message=FALSE}
+model.encontros_relampagos = lm(like ~ fun + attr, data = dados)
+
+dados_aux = dados %>% 
+  add_predictions(model.encontros_relampagos) %>% 
+  add_residuals(model.encontros_relampagos)
+```
+
+Agora, vamos analisar os resíduos do modelo criado para as váriáveis _fun_ e _attr_.  
+- Para a variável _fun_, temos:
+
+```{r}
+dados_aux %>% 
+  ggplot(aes(x = fun)) + 
+  geom_count(aes(y = resid))
+```
+
+A partir dos resíduos da variável _fun_ é possível perceber que a maioria está concentrado entre -4 e 4, existindo algumas amostras que estão foram deste intervalo, mas eu concluo que, no geral, o modelo parece descrever bem os dados, pelo menos para a variável _fun_.
+
+- Para a variável _attr_, temos:
+
+```{r}
+dados_aux %>% 
+  ggplot(aes(x = attr)) + 
+  geom_count(aes(y = resid))
+```
+
+A partir dos resíduos da variável _attr_, assim como na variável _fun_,  é possível perceber que a maioria está concentrado entre -4 e 4, existindo algumas amostras que estão foram deste intervalo, mas eu também concluo que, no geral, o modelo parece descrever bem os dados, pelo menos para a variável _attr_.
+
+Como o nosso modelo é _like_ em função de _attr_ e _fun_, podemos escrevê-lo como forma de função, obviamente, a partir dos coeficientes abaixo:
+```{r, message=FALSE}
+tidy(model.encontros_relampagos, conf.int = TRUE)
+```
+
+A função do modelo é: $like = 1.039 + (0.415 * fun) + (0.394 * attr)$ 
+Logo, podemos perceber que a cada valor a mais em _fun_, é acrescido 0.415 em _like_ e a cada valor a mais em _attr_ é acrescido 0.394 em _like_. Isso quer dizer que quanto mais divertido e/ou atraente uma pessoa é, mais a outra gostará dela.
+
+Vamos agora, observar o nosso modelo:
+
+```{r}
+dados_plot = dados %>%
+  data_grid(attr = seq_range(attr, 10),
+            fun = seq_range(fun, 4)) %>%
+  add_predictions(model.encontros_relampagos)
+
+dados_plot %>%
+  ggplot(aes(x = attr, y = pred)) +
+  geom_line(aes(group = fun, colour = fun))
+```
+
+O modelo acima, nos ajuda a entender melhor o nosso modelo, observando os valores preditos ( _like_ ) em função de _fun_ e _attr_, que são as variáveis independentes.
+
+# A pergunta anterior foi considerando ambos os gêneros, Será que as respostas acima continuam as mesmas quando considerarmos apenas as avaliações das mulheres?
+
+Primeiramente, para responder a esta questão, vamos usar apenas os dados das mulheres:
+
+```{r, message = FALSE}
+dados_mulheres = dados %>%
+  filter(gender == 0 , gender != 'NA')
+```
+
+Vamos analisar o comportamento das correlações entre as variáveis nas amostras de mulheres:
+
+```{r}
+dados_mulheres %>%
+  select(attr, fun, like) %>%
+  ggpairs(lower = list(continuous = wrap("points", alpha = 0.3)))
+```
+
+Podemos percever que as correlações ainda continuam fortes e positivas, mas agora percebe-se que as correlações aumentaram.
+Observamos que, a partir do gráfico acima, tanto a váriável _fun_ (divertido) quanto a variável _attr_ (atraente), apresentam correlações positivas com a variável _like_ (gostar), com 0.703 e 0.683, respectivamente.
+
+Agora, vamos criar o nosso modelo...
+```{r}
+model.encontros_relampagos_mulheres = lm(like ~ fun + attr, data = dados_mulheres)
+
+dados_mulheres_aux = dados_mulheres %>% 
+  add_predictions(model.encontros_relampagos_mulheres) %>% 
+  add_residuals(model.encontros_relampagos_mulheres)
+```
+Agora, vamos analisar os resíduos do modelo criado para as váriáveis _fun_ e _attr_.  
+- Para a variável _fun_, temos:
+
+```{r}
+dados_mulheres_aux %>% 
+  ggplot(aes(x = fun)) + 
+  geom_count(aes(y = resid))
+```
+
+- Para a variável _attr_, temos:
+
+```{r}
+dados_mulheres_aux %>% 
+  ggplot(aes(x = attr)) + 
+  geom_count(aes(y = resid))
+```
+
+
+Analisando os resíduos das variáveis, a partir dos gráficos acima, percebemos a maioria das amostras estão concentradas entre -4 e 4. Dessa forma, podemos concluir que, no geral, o modelo parece descreber bem os dados, para ambas as variáveis ( _fun_  e _attr_).
+
+Escrevendo o nosso modelo como uma função:
+```{r, message=FALSE}
+tidy(model.encontros_relampagos_mulheres, conf.int = TRUE)
+```
+
+A função do modelo é: $like = 0.987 + (0.424 * fun) + (0.396 * attr)$ 
+Logo, podemos perceber que a cada valor a mais em _fun_, é acrescido 0.424 em _like_ e a cada valor a mais em _attr_ é acrescido 0.396 em _like_. Isso quer dizer que quanto mais divertido e/ou atraente uma pessoa é, mais a outra gostará dela.
+
+Vamos agora, observar o nosso modelo:
+
+```{r}
+dados_plot_mulheres = dados_mulheres %>%
+  data_grid(attr = seq_range(attr, 10),
+            fun = seq_range(fun, 4)) %>%
+  add_predictions(model.encontros_relampagos_mulheres)
+
+dados_plot_mulheres %>%
+  ggplot(aes(x = attr, y = pred)) +
+  geom_line(aes(group = fun, colour = fun))
+```
+
+
+Observando o modelo acima e os resíduos, chegamos a conclusão que a resposta permannece a mesmo considerando apenas as amostras das mulheres.
